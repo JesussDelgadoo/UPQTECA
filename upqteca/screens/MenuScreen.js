@@ -2,6 +2,9 @@ import { Text, StyleSheet, View, Button } from 'react-native'
 import React, { useState } from 'react'
 import HomeScreen from './HomeScreen'
 import LoginScreen from './LoginScreen'
+import HistorialScreen from './HistorialScreen'
+import PerfilScreen from './PerfilScreen'
+
 
 export default function MenuScreen() {
 
@@ -12,6 +15,10 @@ export default function MenuScreen() {
         return <LoginScreen/>
       case 'login':
         return <HomeScreen/>
+      case 'historial':
+        return <HistorialScreen/>
+      case 'perfil':
+        return <PerfilScreen/>
       case 'menu':
         default:
           return (
@@ -19,6 +26,8 @@ export default function MenuScreen() {
                 <Text style = {styles.titulo}>Menu de UPQTeca</Text>
                 <Button title='HomeScreen' onPress={()=>setScreen('home')}/>
                 <Button title='LoginScreen' onPress={()=>setScreen('login')}/>
+                <Button title='HistorialScreen' onPress={()=>setScreen('historial')}/>
+                <Button title='PerfilScreen' onPress={()=>setScreen('perfil')}/>
               </View>
           )
   }
