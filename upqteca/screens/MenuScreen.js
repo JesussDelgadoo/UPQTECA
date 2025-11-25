@@ -4,8 +4,8 @@ import HomeScreen from './HomeScreen'
 import LoginScreen from './LoginScreen'
 import HistorialScreen from './HistorialScreen'
 import PerfilScreen from './PerfilScreen'
-
-
+import EspaciosDisponibles from './EspaciosDisponibles'
+import MisReservas from './MisReservas'
 export default function MenuScreen() {
 
   const [screen,setScreen] = useState('menu');
@@ -19,6 +19,12 @@ export default function MenuScreen() {
         return <HistorialScreen/>
       case 'perfil':
         return <PerfilScreen/>
+
+      case 'EspaciosDisponibles':
+        return <EspaciosDisponibles/>
+
+      case 'MisReservas':
+        return <MisReservas/>
       case 'menu':
         default:
           return (
@@ -28,6 +34,8 @@ export default function MenuScreen() {
                 <Button title='LoginScreen' onPress={()=>setScreen('login')}/>
                 <Button title='HistorialScreen' onPress={()=>setScreen('historial')}/>
                 <Button title='PerfilScreen' onPress={()=>setScreen('perfil')}/>
+                <Button title='EspaciosDisponibles' onPress={()=>setScreen('EspaciosDisponibles')}/>
+                <Button title='MisReservas' onPress={()=>setScreen('MisReservas')}/>
               </View>
           )
   }
