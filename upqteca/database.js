@@ -47,7 +47,6 @@ export const initDB = () => {
     
     const users = db.getAllSync('SELECT * FROM users');
     if (users.length === 0) {
-      // Insertamos al usuario por defecto con foto en NULL
       db.runSync(
         'INSERT INTO users (matricula, password, nombre, carrera, cuatrimestre, email, foto) VALUES (?, ?, ?, ?, ?, ?, ?)', 
         ['122041657', '123456', 'Jesus Ramirez Delgado', 'Ing. Tecnologias de la Informacion e Innovacion Digital', '4°', '122041657@upq.edu.mx', null]
