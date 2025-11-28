@@ -1,15 +1,14 @@
-// screens/LoginScreen.js
 import React, { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, StatusBar, StyleSheet, View, ScrollView, Alert } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { loginUser } from '../database';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // <--- IMPORTAR
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen({ navigation }) {
     const [matricula, setMatricula] = useState('122041657');
     const [password, setPassword] = useState('123456');
 
-    const handleLogin = async () => { // <--- ASYNC
+    const handleLogin = async () => {
       if (!matricula || !password) {
         Alert.alert('Error', 'Por favor ingresa matrícula y contraseña');
         return;
@@ -19,7 +18,6 @@ export default function LoginScreen({ navigation }) {
 
       if (user) {
         try {
-            // GUARDAR ID EN MEMORIA DEL TELÉFONO
             await AsyncStorage.setItem('userId', user.id.toString());
             navigation.replace('Main');
         } catch (e) {
@@ -30,11 +28,8 @@ export default function LoginScreen({ navigation }) {
       }
     };
 
-    // ... (El resto del return y estilos se mantiene IGUAL que antes)
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            {/* ... copia tu UI de Login aquí ... */}
-            {/* Solo asegúrate de que el botón llame a handleLogin */}
              <StatusBar barStyle="light-content" backgroundColor="#1976D2" />
         
             <View style={styles.headerSection}>
@@ -70,28 +65,30 @@ export default function LoginScreen({ navigation }) {
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                 <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
             </TouchableOpacity>
+            <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>¿No tienes cuenta? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
+                  <Text style={styles.registerLink}>Regístrate</Text>
+                </TouchableOpacity>
+            </View>
             </View>
         </ScrollView>
     );
 }
 
-// ... Estilos originales ...
-const primaryBlue = '#1976D2';
-const secondaryBlue = '#2196F3';
-const lightGray = '#eee';
-
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
-        justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 0,
-        backgroundColor: primaryBlue,
+        backgroundColor: '#1976D2', 
         paddingTop: 50, 
     },
     headerSection: {
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        height: '42%',
+        paddingTop: 20,
     },
     logoCircle: {
         width: 80,
@@ -115,13 +112,14 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     recuadro:{
+        flex: 1,
         backgroundColor: 'white',
         borderTopLeftRadius: 40,
         borderTopRightRadius: 40,
         padding: 30,
         width: '100%',
         minHeight: 450,
-        elevation: 10,
+        elevation: 20,
     },
     title: {
         fontSize: 28,
@@ -144,7 +142,7 @@ const styles = StyleSheet.create({
     },
     input: {
         height: 50,
-        borderColor: lightGray,
+        borderColor: '#eee',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 15,
@@ -153,7 +151,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     loginButton: {
-        backgroundColor: primaryBlue,
+        backgroundColor: '#1976D2',
         paddingVertical: 15,
         borderRadius: 8,
         alignItems: 'center',
@@ -164,5 +162,20 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    registerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 10,
+        marginBottom: 20,
+    },
+    registerText: {
+        color: '#666',
+        fontSize: 15,
+    },
+    registerLink: {
+        color: '#1976D2',
+        fontWeight: 'bold',
+        fontSize: 15,
     },
 });

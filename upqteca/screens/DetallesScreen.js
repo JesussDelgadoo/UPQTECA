@@ -1,79 +1,148 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
-import { Ionicons, MaterialIcons, AntDesign, Feather } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, AntDesign, Feather, FontAwesome } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DetallesScreen({ route, navigation }) {
-  const item = route.params?.item || {};
-  const tipo = route.params?.tipo || 'espacio';
+  const insets = useSafeAreaInsets();
+  
+  const params = route.params || {};
+  const item = params.item || {};
+  const tipo = params.tipo || 'espacio';
 
-  const tieneCapacidad = item.capacidad !== null && item.capacidad !== undefined && item.capacidad !== 0;
-  const tieneEquipamiento = item.equipamiento && item.equipamiento !== '';
-  // Validamos si debe mostrarse la sección de reserva
-  const esReserva = item.fecha || item.hora;
+  // Helpers de estado
+  const getStatusColor = (status) => {
+      if (!status) return { bg: '#eee', text: '#666' };
+      const s = String(status).toLowerCase();
+      if (s === 'disponible' || s === 'activa' || s === 'completada') return { bg: '#DCFCE7', text: '#166534' };
+      if (s === 'ocupado' || s === 'cancelada') return { bg: '#FEE2E2', text: '#991B1B' };
+      return { bg: '#eee', text: '#666' };
+  };
+
+  const statusStyle = getStatusColor(item.estado);
+
+  // Validaciones seguras
+  const tieneCapacidad = item.capacidad !== undefined && item.capacidad !== null && Number(item.capacidad) > 0;
+  const tieneEquipamiento = !!item.equipamiento && item.equipamiento !== '';
+  const esReserva = !!(item.fecha || item.hora);
+  const tieneRating = item.rating !== undefined && item.rating !== null && Number(item.rating) > 0;
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1976D2" />
       
-      <View style={styles.header}>
+      {/* HEADER */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalles</Text>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
-          <Text style={styles.title}>
-            {item.nombre || item.espacio_nombre || "Sin Nombre"}
-          </Text>
           
+          {/* Título e Icono Principal */}
+          <View style={styles.cardHeader}>
+             <MaterialIcons 
+                name={tipo === 'espacio' ? "business" : "event-note"} 
+                size={48} 
+                color="#1976D2" 
+                style={{marginBottom:10}} 
+             />
+             <Text style={styles.title}>
+               {item.nombre || item.espacio_nombre || "Sin Nombre"}
+             </Text>
+             
+             {!!item.estado && (
+                <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
+                    <Text style={[styles.badgeText, { color: statusStyle.text }]}>
+                        {String(item.estado).toUpperCase()}
+                    </Text>
+                </View>
+             )}
+          </View>
+          
+          <View style={styles.divider} />
+
+          {/* Ubicación */}
           <View style={styles.row}>
-            <Ionicons name="location-outline" size={20} color="#666" style={styles.icon} />
+            <Ionicons name="location-outline" size={22} color="#666" style={styles.icon} />
             <Text style={styles.text}>{item.ubicacion || "Ubicación no disponible"}</Text>
           </View>
 
+          {/* Capacidad */}
           {tieneCapacidad && (
             <View style={styles.row}>
-              <Ionicons name="people-outline" size={20} color="#666" style={styles.icon} />
+              <Ionicons name="people-outline" size={22} color="#666" style={styles.icon} />
               <Text style={styles.text}>Capacidad: {item.capacidad} personas</Text>
             </View>
           )}
 
+          {/* Equipamiento */}
           {tieneEquipamiento && (
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Equipamiento:</Text>
-                <Text style={styles.text}>{item.equipamiento}</Text>
+                <View style={styles.rowHeader}>
+                    <Feather name="box" size={18} color="#333" />
+                    <Text style={styles.sectionTitle}>Equipamiento</Text>
+                </View>
+                <Text style={styles.descriptionText}>{item.equipamiento}</Text>
             </View>
           )}
 
+          {/* Información de Reserva */}
           {esReserva && (
              <View style={styles.section}>
-                <View style={styles.sectionHeaderBox}>
-                    <AntDesign name="clockcircleo" size={18} color="#333" />
+                <View style={styles.rowHeader}>
+                    <AntDesign name="clock-circle" size={18} color="#333" />
                     <Text style={styles.sectionTitle}>Información de Reserva</Text>
                 </View>
                 
-                {/* --- SECCIÓN MODIFICADA CON TUS ICONOS --- */}
                 <View style={{ marginTop: 10 }}>
-                    <Text style={styles.textWithIcon}>
+                    {/* Fila Fecha */}
+                    <View style={styles.rowInfo}>
                         <MaterialIcons name="calendar-today" size={18} color="#666" />
-                        <Text>  {item.fecha || '--'}</Text>
-                    </Text>
+                        <Text style={styles.textInfo}>{item.fecha || '--'}</Text>
+                    </View>
                     
-                    <Text style={[styles.textWithIcon, { marginTop: 8 }]}>
-                        {/* Corregido: 'clock-circle' -> 'clockcircleo' para AntDesign */}
-                        <AntDesign name="clockcircleo" size={18} color="#666" />
-                        <Text>  {item.hora || '--'}</Text>
-                    </Text>
+                    {/* Fila Hora */}
+                    <View style={styles.rowInfo}>
+                        <AntDesign name="clock-circle" size={18} color="#666" />
+                        <Text style={styles.textInfo}>{item.hora || '--'}</Text>
+                    </View>
 
-                    {item.estado ? (
-                        <Text style={[styles.text, {color: item.estado === 'Activa' ? 'green' : 'red', fontWeight:'bold', marginTop: 10}]}>
-                            Estado: {item.estado || 'Desconocido'}
-                        </Text>
-                    ) : null}
+                    {/* Estado */}
+                    {!!item.estado && (
+                        <View style={styles.rowInfo}>
+                            <Text style={[styles.textInfo, {
+                                color: String(item.estado) === 'Activa' ? 'green' : 'red', 
+                                fontWeight:'bold',
+                                marginLeft: 0 
+                            }]}>
+                                Estado: {item.estado}
+                            </Text>
+                        </View>
+                    )}
                 </View>
              </View>
+          )}
+          
+          {/* Calificación */}
+          {tieneRating && (
+              <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Tu Calificación</Text>
+                  <View style={{flexDirection:'row', marginTop: 5}}>
+                      {[1,2,3,4,5].map((i) => (
+                          <FontAwesome 
+                            key={i} 
+                            name={i <= Number(item.rating) ? "star" : "star-half-empty"} 
+                            size={24} 
+                            color="#FFD700" 
+                          />
+                      ))}
+                  </View>
+              </View>
           )}
         </View>
 
@@ -89,31 +158,55 @@ export default function DetallesScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: '#f5f6fa' },
+  
   header: { 
-    backgroundColor: '#1976D2', 
-    padding: 20, 
-    paddingTop: 50, 
+    backgroundColor: '#1976D2', // <--- Hex directo
+    paddingHorizontal: 20, 
+    paddingBottom: 15, 
     flexDirection: 'row', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
-  backBtn: { marginRight: 15 },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  backBtn: { padding: 5 },
+  
   content: { padding: 20 },
-  card: { backgroundColor: '#fff', borderRadius: 15, padding: 20, marginBottom: 20, elevation: 3 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#1976D2', marginBottom: 15 },
   
-  // Estilos generales de fila
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  icon: { marginRight: 10 }, // Margen para separar icono del texto
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: 15, 
+    padding: 20, 
+    marginBottom: 20, 
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   
-  text: { fontSize: 16, color: '#444' },
-  textWithIcon: { fontSize: 16, color: '#444', textAlignVertical: 'center' }, // Nuevo estilo para alinear texto e icono
+  cardHeader: { alignItems: 'center', marginBottom: 15 },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 8 },
   
-  section: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#eee' },
-  sectionHeaderBox: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginLeft: 8, color: '#333' },
+  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginTop: 5 },
+  badgeText: { fontWeight: '700', fontSize: 12 },
   
-  actionBtn: { backgroundColor: '#1976D2', padding: 15, borderRadius: 10, alignItems: 'center' },
+  divider: { height: 1, backgroundColor: '#eee', marginVertical: 15 },
+  
+  // Filas generales 
+  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  icon: { marginRight: 12, width: 24, textAlign: 'center' },
+  text: { fontSize: 16, color: '#444', flex: 1 },
+
+  // Filas Reserva
+  rowHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  rowInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  textInfo: { fontSize: 16, color: '#444', marginLeft: 10, flex: 1 },
+  
+  section: { marginTop: 20, backgroundColor: '#F9FAFB', padding: 15, borderRadius: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginLeft: 8 },
+  descriptionText: { color: '#555', lineHeight: 22, fontSize: 15 },
+  
+  actionBtn: { backgroundColor: '#1976D2', padding: 15, borderRadius: 10, alignItems: 'center' }, // <--- Hex directo
   actionBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

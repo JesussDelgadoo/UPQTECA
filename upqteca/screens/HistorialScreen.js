@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, StatusBar, Image } from 'react-native';
-import { AntDesign, MaterialIcons, Feather } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons, Feather, FontAwesome } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getHistorial } from '../database';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // <--- IMPORTANTE
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const primaryBlue = '#1976D2';
 const dangerRed = '#E53935';
@@ -13,7 +13,7 @@ const referenciaImagen = 'file:///mnt/data/c8c9d5d4-23cd-4139-a4bc-b2ae41821912.
 const USER_ID = 1; 
 
 export default function HistorialScreen({ navigation }) {
-  const insets = useSafeAreaInsets(); // <--- Obtener medidas seguras
+  const insets = useSafeAreaInsets();
   const [reservas, setReservas] = useState([]);
   const [filtro, setFiltro] = useState('Todos');
   const [search, setSearch] = useState('');
@@ -33,6 +33,16 @@ export default function HistorialScreen({ navigation }) {
     }
   };
 
+  // Helper para colores de estado
+  const getStatusStyle = (estado) => {
+      switch(estado) {
+          case 'Completada': return { bg: '#E6F4EA', text: '#166534' }; // Verde
+          case 'Cancelada': return { bg: '#FEE2E2', text: '#991B1B' }; // Rojo
+          case 'En Curso': return { bg: '#E0F2FE', text: '#0284C7' };  // Azul
+          default: return { bg: '#FFF5E6', text: '#BE8700' }; // Naranja (Por defecto)
+      }
+  };
+
   const filtered = reservas.filter(r => {
     const matchesFiltro = filtro === 'Todos' ? true : r.estado.toLowerCase() === filtro.toLowerCase();
     const searchText = search.toLowerCase();
@@ -47,7 +57,7 @@ export default function HistorialScreen({ navigation }) {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <AntDesign key={i} name={i <= n ? 'star' : 'staro'} size={18} color={i <= n ? '#FFD700' : '#DDD'} />
+        <FontAwesome key={i} name={i <= n ? 'star' : 'star-half-empty'} size={18} color={i <= n ? '#FFD700' : '#DDD'} />
       );
     }
     return <View style={styles.starsRow}>{stars}</View>;
@@ -57,8 +67,7 @@ export default function HistorialScreen({ navigation }) {
     <View style={styles.screen}>
       <StatusBar backgroundColor={primaryBlue} barStyle="light-content" />
 
-      {/* Header con Safe Area Dinámico */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerContent}>
             <View style={styles.headerLeft}>
                 <Text style={styles.headerTitle}>Historial de Reservas</Text>
@@ -77,7 +86,6 @@ export default function HistorialScreen({ navigation }) {
       <Image source={{ uri: referenciaImagen }} style={[styles.referenceImage, { top: 60 + insets.top }]} resizeMode="cover" />
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Buscador */}
         <View style={styles.searchRow}>
           <Feather name="search" size={18} color="#777" />
           <TextInput
@@ -89,7 +97,6 @@ export default function HistorialScreen({ navigation }) {
           />
         </View>
 
-        {/* Resumen Estadístico */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <AntDesign name="check-circle" size={22} color={primaryBlue} />
@@ -110,9 +117,9 @@ export default function HistorialScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Filtros */}
+        {/* Filtros (Agregamos 'En Curso' al filtro si quieres que aparezca como opción) */}
         <View style={styles.filters}>
-          {['Todos', 'Completada', 'Cancelada'].map((f) => (
+          {['Todos', 'En Curso', 'Completada', 'Cancelada'].map((f) => (
             <TouchableOpacity
               key={f}
               onPress={() => setFiltro(f)}
@@ -122,48 +129,52 @@ export default function HistorialScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Lista */}
         {filtered.length === 0 ? (
             <Text style={styles.emptyText}>No hay historial disponible.</Text>
         ) : (
-            filtered.map((r) => (
-            <View key={r.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                    <View>
-                        <Text style={styles.salaText}>{r.espacio_nombre}</Text>
-                        <Text style={styles.buildingText}>{r.ubicacion}</Text>
+            filtered.map((r) => {
+              const styleStatus = getStatusStyle(r.estado);
+              return (
+                <View key={r.id} style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <View>
+                            <Text style={styles.salaText}>{r.espacio_nombre}</Text>
+                            <Text style={styles.buildingText}>{r.ubicacion}</Text>
+                        </View>
+                        
+                        {/* Badge con color dinámico */}
+                        <View style={[styles.statusBadge, { backgroundColor: styleStatus.bg }]}>
+                            <Text style={[styles.statusText, { color: styleStatus.text }]}>
+                            {r.estado}
+                            </Text>
+                        </View>
                     </View>
-                    <View style={[styles.statusBadge, r.estado === 'Completada' && { backgroundColor: '#E6F4EA' }]}>
-                        <Text style={[styles.statusText, r.estado === 'Cancelada' && { color: dangerRed }]}>
-                        {r.estado}
-                        </Text>
-                    </View>
-                </View>
 
-                <View style={styles.infoRow}>
-                    <MaterialIcons name="calendar-today" size={16} color="#777" />
-                    <Text style={styles.infoText}>{r.fecha}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                    <AntDesign name="clockcircleo" size={16} color="#777" />
-                    <Text style={styles.infoText}>{r.hora}</Text>
-                </View>
+                    <View style={styles.infoRow}>
+                        <MaterialIcons name="calendar-today" size={16} color="#777" />
+                        <Text style={styles.infoText}>{r.fecha}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                        <AntDesign name="clock-circle" size={16} color="#777" />
+                        <Text style={styles.infoText}>{r.hora}</Text>
+                    </View>
 
-                <View style={styles.cardFooter}>
-                    <View style={styles.leftFooter}>
-                        {r.rating > 0 ? renderStars(r.rating) : <Text style={styles.noRating}>Sin calificación</Text>}
-                    </View>
-                    <View style={styles.rightFooter}>
-                        <TouchableOpacity 
-                            style={styles.ghostBtn}
-                            onPress={() => navigation.navigate('DetallesReserva', { item: r, tipo: 'historial' })}
-                        >
-                            <Text style={styles.ghostBtnText}>Ver detalles</Text>
-                        </TouchableOpacity>
+                    <View style={styles.cardFooter}>
+                        <View style={styles.leftFooter}>
+                            {r.rating > 0 ? renderStars(r.rating) : <Text style={styles.noRating}>Sin calificación</Text>}
+                        </View>
+                        <View style={styles.rightFooter}>
+                            <TouchableOpacity 
+                                style={styles.ghostBtn}
+                                onPress={() => navigation.navigate('DetallesReserva', { item: r, tipo: 'historial' })}
+                            >
+                                <Text style={styles.ghostBtnText}>Ver detalles</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
-            </View>
-            ))
+              );
+            })
         )}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -175,17 +186,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: lightBackground },
   header: {
     backgroundColor: primaryBlue,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingBottom: 15,
-    // paddingTop se maneja dinámicamente arriba
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: 50, // Altura fija para el contenido del header
+    height: 50,
   },
-  headerTitle: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
   headerRight: { flexDirection: 'row' },
   iconBtn: { marginLeft: 8, padding: 6 },
 
@@ -246,16 +256,16 @@ const styles = StyleSheet.create({
     elevation: 3
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  salaText: { color: primaryBlue, fontSize: 16, fontWeight: '700', maxWidth:'70%' },
+  salaText: { color: primaryBlue, fontSize: 16, fontWeight: '700', maxWidth:'65%' },
   buildingText: { color: '#666', fontSize: 13 },
 
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
-    backgroundColor: '#FFF5E6'
+    // El color de fondo se define dinámicamente en el componente
   },
-  statusText: { color: '#BE8700', fontWeight: '700', fontSize: 12 },
+  statusText: { fontWeight: '700', fontSize: 12 },
 
   infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   infoText: { marginLeft: 8, color: '#555' },

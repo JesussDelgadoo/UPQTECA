@@ -3,10 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, StatusBar 
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AntDesign, Ionicons, MaterialIcons } from '@expo/vector-icons'; // <--- IMPORTAMOS ICONOS
+import { AntDesign, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { getMisReservasActivas, cancelarReserva } from '../database';
-
-const primaryBlue = '#1976D2';
 
 export default function MisReservasScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -50,7 +48,7 @@ export default function MisReservasScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
-      <StatusBar backgroundColor={primaryBlue} barStyle="light-content" />
+      <StatusBar backgroundColor="#1976D2" barStyle="light-content" />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -127,7 +125,7 @@ const styles = StyleSheet.create({
   header: { 
     paddingHorizontal: 20, 
     paddingBottom: 15,
-    backgroundColor: primaryBlue,
+    backgroundColor: '#1976D2', // <--- Hex directo
   },
   headerText: { 
     fontSize: 22, 
@@ -145,7 +143,7 @@ const styles = StyleSheet.create({
   badgeActive: { 
     paddingVertical: 4, 
     paddingHorizontal: 10, 
-    backgroundColor: '#DCFCE7', // Verde claro
+    backgroundColor: '#DCFCE7',
     borderRadius: 20,
     alignSelf: 'flex-start',
     marginLeft: 10
@@ -154,7 +152,7 @@ const styles = StyleSheet.create({
 
   infoContainer: { marginBottom: 10 },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  icon: { marginRight: 8, width: 20, textAlign: 'center' }, // Ancho fijo para alinear
+  icon: { marginRight: 8, width: 20, textAlign: 'center' }, 
   infoText: { color: '#555', fontSize: 15 },
 
   btnRow: { 
