@@ -1,13 +1,11 @@
-// PerfilScreen.js
-import React, { useState } from "react";
-import {View,Text,StyleSheet,TouchableOpacity,ScrollView,StatusBar,Image,Switch,} from "react-native";
-import {AntDesign,Ionicons,MaterialCommunityIcons,Feather,} from "@expo/vector-icons";
+import React, { useState, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Image, Switch, Alert } from "react-native";
+import { AntDesign, Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import { getUserById } from '../database';
 
-/**
- * Ruta local de la imagen que subiste (se usará como banner/referencia)
- * El sistema la transforma a URL cuando sea necesario:
- * file:///mnt/data/c8c9d5d4-23cd-4139-a4bc-b2ae41821912.png
- */
+// Esta ruta es la referencia visual que tenías
 const referenciaImagen = "file:///mnt/data/c8c9d5d4-23cd-4139-a4bc-b2ae41821912.png";
 
 const primaryBlue = "#1976D2";
@@ -18,6 +16,43 @@ const surface = "#F5F6FA";
 export default function PerfilScreen({ navigation }) {
   const [notificaciones, setNotificaciones] = useState(true);
   const [recordatorios, setRecordatorios] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  // Cargar datos reales del usuario cada vez que entras a la pantalla
+  useFocusEffect(
+    useCallback(() => {
+        const loadUser = async () => {
+            try {
+                const id = await AsyncStorage.getItem('userId');
+                if (id) {
+                    const user = getUserById(parseInt(id));
+                    setUserData(user);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        loadUser();
+    }, [])
+  );
+
+  const handleLogout = async () => {
+      Alert.alert(
+        "Cerrar Sesión",
+        "¿Estás seguro que quieres salir?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { 
+            text: "Salir", 
+            style: "destructive",
+            onPress: async () => {
+              await AsyncStorage.removeItem('userId');
+              navigation.replace('Login');
+            }
+          }
+        ]
+      );
+  };
 
   return (
     <View style={styles.screen}>
@@ -26,52 +61,47 @@ export default function PerfilScreen({ navigation }) {
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mi Perfil</Text>
-        <TouchableOpacity style={styles.headerIcon}>
-          <Feather name="more-vertical" size={22} color={white} />
-        </TouchableOpacity>
       </View>
 
-      {/* BANNER (imagen de referencia, baja opacidad) */}
+      {/* BANNER (Imagen de fondo tenue) */}
       <Image
         source={{ uri: referenciaImagen }}
         style={styles.banner}
         resizeMode="cover"
       />
 
-     
-
       <ScrollView contentContainerStyle={styles.container}>
-        {/* PERFIL - tarjeta principal (sobre fondo morado suave) */}
+        {/* TARJETA DE PERFIL (Datos Reales) */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <AntDesign name="user" size={44} color={primaryBlue} />
           </View>
 
-          <Text style={styles.name}>Jesus Ramirez Delgado</Text>
-          <Text style={styles.matricula}>122041657</Text>
-          <Text style={styles.email}>122041657@upq.edu.mx</Text>
+          <Text style={styles.name}>{userData ? userData.nombre : 'Cargando...'}</Text>
+          <Text style={styles.matricula}>{userData ? userData.matricula : '...'}</Text>
+          <Text style={styles.email}>{userData ? userData.email : '...'}</Text>
 
           {/* Datos carrera / cuatri */}
           <View style={styles.profileInfoRow}>
             <View style={styles.infoBox}>
               <Text style={styles.infoLabel}>Carrera</Text>
-              <Text style={styles.infoValue}>Ingeniería en Sistemas Computacionales</Text>
+              <Text style={styles.infoValue}>{userData ? userData.carrera : '...'}</Text>
             </View>
 
             <View style={[styles.infoBox, { marginLeft: 12 }]}>
               <Text style={styles.infoLabel}>Cuatrimestre</Text>
-              <Text style={styles.infoValue}>6°</Text>
+              <Text style={styles.infoValue}>4°</Text>
             </View>
           </View>
 
           {/* Edit profile button */}
           <TouchableOpacity style={styles.editButton}>
-            <AntDesign name="edit" size={16} color={white} />
+            <AntDesign name="edit" size={16} color={primaryBlue} />
             <Text style={styles.editButtonText}>Editar perfil</Text>
           </TouchableOpacity>
         </View>
 
-        {/* MÉTRICAS */}
+        {/* MÉTRICAS (Estadísticas visuales) */}
         <View style={styles.metricsRow}>
           <View style={styles.metricCard}>
             <Ionicons name="calendar-outline" size={22} color={primaryBlue} />
@@ -86,7 +116,7 @@ export default function PerfilScreen({ navigation }) {
           </View>
 
           <View style={styles.metricCard}>
-            <AntDesign name="staro" size={22} color="#FBBF24" />
+            <AntDesign name="star" size={22} color="#FBBF24" />
             <Text style={styles.metricNumber}>4.8</Text>
             <Text style={styles.metricLabel}>Calificación</Text>
           </View>
@@ -142,57 +172,12 @@ export default function PerfilScreen({ navigation }) {
         </View>
 
         {/* BOTÓN CERRAR SESIÓN */}
-        <TouchableOpacity style={styles.logoutButton} onPress={() => alert("Sesión cerrada")}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <MaterialCommunityIcons name="logout" size={18} color={white} />
           <Text style={styles.logoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-        {/* espacio para la barra inferior */}
-        <View style={{ height: 120 }} />
       </ScrollView>
-
-      {/* BOTTOM NAV (idéntica a la del Dashboard) */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation?.navigate?.("Inicio")}
-        >
-          <Ionicons name="home-outline" size={24} color="#666" />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation?.navigate?.("Reservas")}
-        >
-          <MaterialCommunityIcons name="calendar-check-outline" size={24} color="#666" />
-          <Text style={styles.navLabel}>Reservas</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, styles.navItemActive]}
-          onPress={() => navigation?.navigate?.("Perfil")}
-        >
-          <AntDesign name="user" size={24} color={primaryBlue} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Perfil</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation?.navigate?.("Espacios")}
-        >
-          <MaterialCommunityIcons name="office-building-marker-outline" size={24} color="#666" />
-          <Text style={styles.navLabel}>Espacios</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation?.navigate?.("Historial")}
-        >
-          <MaterialCommunityIcons name="history" size={24} color="#666" />
-          <Text style={styles.navLabel}>Historial</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -222,21 +207,6 @@ const styles = StyleSheet.create({
     height: 84,
     opacity: 0.08,
   },
-
-  /* RECUADRO SUPERIOR (blanco) */
-  topBox: {
-    backgroundColor: white,
-    marginHorizontal: 18,
-    marginTop: -10,
-    borderRadius: 12,
-    padding: 12,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  topBoxTitle: { fontSize: 16, fontWeight: "700", color: "#222" },
-  topBoxSubtitle: { fontSize: 13, color: "#666", marginTop: 4 },
 
   /* CONTAINER */
   container: {
@@ -343,24 +313,4 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   logoutText: { color: white, fontWeight: "700", marginLeft: 8 },
-
-  /* BOTTOM NAV */
-  bottomNav: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 78,
-    backgroundColor: white,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  navItem: { alignItems: "center" },
-  navItemActive: { alignItems: "center" },
-  navLabel: { fontSize: 12, color: "#666", marginTop: 4 },
-  navLabelActive: { fontSize: 12, color: primaryBlue, fontWeight: "700", marginTop: 4 },
 });
-

@@ -1,326 +1,187 @@
-import React from 'react';
-import {View,Text,TouchableOpacity,ScrollView,StyleSheet,} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-export default function MisReservasScreen() {
-  // Datos de ejemplo 
-  const reserva = {
-    title: 'Cubículo Individual A1',
-    status: 'Activa',
-    dateLabel: 'domingo, 14 de enero de 2024',
-    timeLabel: '14:00 - 16:00',
-    location: 'Biblioteca - Planta Baja',
-    checkInPending: true,
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, StatusBar } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AntDesign, Ionicons, MaterialIcons } from '@expo/vector-icons'; // <--- IMPORTAMOS ICONOS
+import { getMisReservasActivas, cancelarReserva } from '../database';
+
+const primaryBlue = '#1976D2';
+
+export default function MisReservasScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const [reservas, setReservas] = useState([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarDatos();
+    }, [])
+  );
+
+  const cargarDatos = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (userId) {
+        const data = getMisReservasActivas(parseInt(userId));
+        setReservas(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCancelar = (id) => {
+    Alert.alert(
+      "Cancelar Reserva",
+      "¿Estás seguro que deseas cancelar?",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Sí, cancelar", 
+          style: 'destructive',
+          onPress: () => {
+            cancelarReserva(id);
+            cargarDatos();
+          }
+        }
+      ]
+    );
   };
 
   return (
     <View style={styles.screen}>
-    
-      <View style={styles.header}>
+      <StatusBar backgroundColor={primaryBlue} barStyle="light-content" />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.headerText}>Mis Reservas</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-    
-        <View style={styles.section}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryNumber}>1</Text>
-              <Text style={styles.summaryLabel}>Activas</Text>
-            </View>
-
-            <View style={styles.summaryBox}>
-              <Text style={[styles.summaryNumber, { color: '#2563eb' }]}>1</Text>
-              <Text style={styles.summaryLabel}>Total hoy</Text>
-            </View>
-          </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+            <Text style={styles.sectionHeader}>Reservas Activas ({reservas.length})</Text>
         </View>
 
-    
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={styles.sectionHeader}>Reservas Activas</Text>
-          <TouchableOpacity>
-            <Text style={styles.sectionLink}>+ Nueva reserva</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.card}>
-      
-          <View style={styles.cardTitleRow}>
-            <Text style={styles.cardTitle}>{reserva.title}</Text>
-            <View style={styles.badgeActive}>
-              <Text style={styles.badgeActiveText}>{reserva.status}</Text>
+        {reservas.length === 0 ? (
+            <View style={styles.emptyContainer}>
+                <MaterialIcons name="event-busy" size={50} color="#ccc" />
+                <Text style={styles.emptyText}>No tienes reservas activas.</Text>
             </View>
-          </View>
+        ) : (
+            reservas.map((reserva) => (
+                <View key={reserva.id} style={styles.card}>
+                    <View style={styles.cardTitleRow}>
+                        <Text style={styles.cardTitle}>{reserva.espacio_nombre}</Text>
+                        <View style={styles.badgeActive}>
+                            <Text style={styles.badgeActiveText}>Activa</Text>
+                        </View>
+                    </View>
 
-     
-          <View style={{ marginBottom: 8 }}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>📅</Text>
-              <Text style={styles.infoText}>{reserva.dateLabel}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>⏰</Text>
-              <Text style={styles.infoText}>{reserva.timeLabel}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>📍</Text>
-              <Text style={styles.infoText}>{reserva.location}</Text>
-            </View>
-          </View>
+                    <View style={styles.infoContainer}>
+                        {/* FECHA */}
+                        <View style={styles.infoRow}>
+                            <MaterialIcons name="calendar-today" size={18} color="#666" style={styles.icon} />
+                            <Text style={styles.infoText}>{reserva.fecha}</Text>
+                        </View>
 
-          {reserva.checkInPending && (
-            <View style={styles.alertBox}>
-              <Text style={styles.alertTitle}>Pendiente de check-in</Text>
-              <Text style={styles.alertText}>Recuerda hacer check-in al llegar al espacio</Text>
-            </View>
-          )}
+                        {/* HORA */}
+                        <View style={styles.infoRow}>
+                            <AntDesign name="clock-circle" size={18} color="#666" style={styles.icon} />
+                            <Text style={styles.infoText}>{reserva.hora}</Text>
+                        </View>
 
-          <View style={styles.btnRow}>
-            <TouchableOpacity style={styles.checkInBtn}>
-              <Text style={styles.checkInText}>Check-in</Text>
-            </TouchableOpacity>
+                        {/* UBICACIÓN */}
+                        <View style={styles.infoRow}>
+                            <Ionicons name="location-outline" size={18} color="#666" style={styles.icon} />
+                            <Text style={styles.infoText}>{reserva.ubicacion}</Text>
+                        </View>
+                    </View>
 
-            <TouchableOpacity style={styles.detailsBtn}>
-              <Text style={{ fontWeight: '600' }}>Ver detalles</Text>
-            </TouchableOpacity>
-          </View>
+                    <View style={styles.btnRow}>
+                        <TouchableOpacity 
+                            style={styles.detailsBtn}
+                            onPress={() => navigation.navigate('DetallesReserva', { item: reserva, tipo: 'reserva' })}
+                        >
+                            <Text style={styles.detailsBtnText}>Ver detalles</Text>
+                        </TouchableOpacity>
 
-          <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
-            <TouchableOpacity>
-              <Text style={styles.deleteIcon}>✖</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-     
-        <View style={{ height: 120 }} />
+                        <TouchableOpacity 
+                            style={styles.cancelBtn} 
+                            onPress={() => handleCancelar(reserva.id)}
+                        >
+                            <MaterialIcons name="cancel" size={20} color="#dc2626" />
+                            <Text style={styles.cancelText}>Cancelar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            ))
+        )}
       </ScrollView>
-
- 
-     <View style={styles.bottomTabs}>
-  <TouchableOpacity style={styles.tab}>
-    <Ionicons name="home-outline" size={22} color="#555" />
-    <Text style={styles.tabLabel}>Inicio</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.tab}>
-    <Ionicons name="calendar-clear-outline" size={22} color="#2563eb" />
-    <Text style={[styles.tabLabel, styles.tabActive]}>Reservas</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.tab}>
-    <Ionicons name="business-outline" size={22} color="#555" />
-    <Text style={styles.tabLabel}>Espacios</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.tab}>
-    <Ionicons name="time-outline" size={22} color="#555" />
-    <Text style={styles.tabLabel}>Historial</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.tab}>
-    <Ionicons name="person-outline" size={22} color="#555" />
-    <Text style={styles.tabLabel}>Perfil</Text>
-  </TouchableOpacity>
-</View>
     </View>
   );
 }
 
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#f5f6fa',
+  screen: { flex: 1, backgroundColor: '#f5f6fa' },
+  
+  header: { 
+    paddingHorizontal: 20, 
+    paddingBottom: 15,
+    backgroundColor: primaryBlue,
+  },
+  headerText: { 
+    fontSize: 22, 
+    fontWeight: '700', 
+    color: '#fff' 
   },
 
-  header: {
-    padding: 20,
-    backgroundColor: '#2563eb',
-  },
+  sectionHeader: { fontSize: 18, fontWeight: '700', color: '#333' },
 
-  headerText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
-  section: {
-    padding: 0,
-  },
-
-  card: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    marginBottom: 20,
-  },
-
-  cardTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-
-  badgeActive: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    backgroundColor: '#22c55e20',
+  card: { padding: 20, backgroundColor: '#fff', borderRadius: 15, marginBottom: 20, elevation: 2 },
+  
+  cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  cardTitle: { fontSize: 18, fontWeight: '700', color: '#333', flex: 1 },
+  
+  badgeActive: { 
+    paddingVertical: 4, 
+    paddingHorizontal: 10, 
+    backgroundColor: '#DCFCE7', // Verde claro
     borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginLeft: 10
   },
+  badgeActiveText: { color: '#166534', fontWeight: '700', fontSize: 12 },
 
-  badgeActiveText: {
-    color: '#22c55e',
-    fontWeight: '600',
-  },
+  infoContainer: { marginBottom: 10 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  icon: { marginRight: 8, width: 20, textAlign: 'center' }, // Ancho fijo para alinear
+  infoText: { color: '#555', fontSize: 15 },
 
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: 5,
-  },
-
-  infoIcon: {
-    marginRight: 8,
-    color: '#6b7280',
-  },
-
-  infoText: {
-    color: '#444',
-  },
-
-  alertBox: {
-    padding: 12,
-    backgroundColor: '#fef9c3',
-    borderRadius: 10,
-    marginVertical: 10,
-  },
-
-  alertTitle: {
-    fontWeight: '700',
-    color: '#b45309',
-    marginBottom: 3,
-  },
-
-  alertText: {
-    color: '#b45309',
-  },
-
-  btnRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-
-  checkInBtn: {
-    padding: 12,
-    backgroundColor: '#22c55e',
-    borderRadius: 10,
-    width: '45%',
-    alignItems: 'center',
-  },
-
-  checkInText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-
-  detailsBtn: {
-    padding: 12,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 10,
-    width: '45%',
-    alignItems: 'center',
-  },
-
-  deleteIcon: {
-    marginLeft: 10,
-    color: '#dc2626',
-  },
-
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-
-  sectionLink: {
-    color: '#2563eb',
-    fontWeight: '600',
-  },
-
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-
-  summaryBox: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    width: '48%',
-    alignItems: 'center',
-  },
-
-  summaryNumber: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#22c55e',
-  },
-
-  summaryLabel: {
-    color: '#444',
-  },
-
-  bottomTabs: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    backgroundColor: '#fff',
+  btnRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginTop: 10, 
+    paddingTop: 15,
     borderTopWidth: 1,
-    borderColor: '#e5e7eb',
+    borderTopColor: '#f0f0f0',
+    alignItems: 'center' 
   },
 
-  tab: {
-    flex: 1,
-    alignItems: 'center',
+  detailsBtn: { 
+    paddingVertical: 8, 
+    paddingHorizontal: 16, 
+    backgroundColor: '#f3f4f6', 
+    borderRadius: 8 
   },
+  detailsBtnText: { fontWeight: '600', color: '#333' },
 
-  tabLabel: {
-    marginTop: 5,
-    color: '#444',
+  cancelBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: 8 
   },
+  cancelText: { color: '#dc2626', fontWeight: '600', marginLeft: 4 },
 
-  tabActive: {
-    color: '#2563eb',
-  },
-  bottomTabs: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  paddingVertical: 10,
-  backgroundColor: '#fff',
-  borderTopWidth: 1,
-  borderColor: '#e5e7eb',
-},
-
-tab: {
-  flex: 1,
-  alignItems: 'center',
-},
-
-tabLabel: {
-  fontSize: 12,
-  color: '#555',
-  marginTop: 2,
-},
-
-tabActive: {
-  color: '#2563eb',
-  fontWeight: '600',
-},
+  emptyContainer: { alignItems: 'center', marginTop: 50 },
+  emptyText: { textAlign: 'center', color: '#999', marginTop: 10, fontSize: 16 }
 });

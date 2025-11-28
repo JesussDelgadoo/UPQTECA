@@ -1,106 +1,81 @@
-import React, {useState} from 'react'
-import { Text, TextInput, TouchableOpacity, StatusBar, StyleSheet, View, ScrollView, Switch, Alert, Platform } from 'react-native'
+// screens/LoginScreen.js
+import React, { useState } from 'react';
+import { Text, TextInput, TouchableOpacity, StatusBar, StyleSheet, View, ScrollView, Alert } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
+import { loginUser } from '../database';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // <--- IMPORTAR
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
     const [matricula, setMatricula] = useState('122041657');
-    const [contraseña, setContraseña] = useState('********');
-    const [recordarme, setRecordarme] = useState(false);
+    const [password, setPassword] = useState('123456');
 
-    const MostrarAlerta = () => {
-      if (matricula.trim() === '' || contraseña.trim() === '') {
-        const message = 'Por favor, escribe tu matrícula y contraseña para continuar.';
-        if (Platform.OS === 'web') {
-          alert(message);
-        } else {
-          Alert.alert('Error', message, [
-            { text: 'Aceptar' }
-          ]);
-        }
+    const handleLogin = async () => { // <--- ASYNC
+      if (!matricula || !password) {
+        Alert.alert('Error', 'Por favor ingresa matrícula y contraseña');
         return;
       }
-      
-      const successMessage = `Bienvenido a UPTECA, Matrícula: ${matricula}`;
-      if (Platform.OS === 'web') {
-        alert(successMessage);
+
+      const user = loginUser(matricula, password);
+
+      if (user) {
+        try {
+            // GUARDAR ID EN MEMORIA DEL TELÉFONO
+            await AsyncStorage.setItem('userId', user.id.toString());
+            navigation.replace('Main');
+        } catch (e) {
+            Alert.alert('Error', 'No se pudo guardar la sesión');
+        }
       } else {
-        Alert.alert(
-          'Iniciar sesión exitoso',
-          successMessage,
-          [
-            { text: 'Aceptar' }
-          ]
-        );
+        Alert.alert('Error', 'Credenciales incorrectas.');
       }
     };
 
+    // ... (El resto del return y estilos se mantiene IGUAL que antes)
     return (
-      <ScrollView contentContainerStyle={styles.container}>
-      
-        <StatusBar barStyle="light-content" backgroundColor={primaryBlue}></StatusBar>
+        <ScrollView contentContainerStyle={styles.container}>
+            {/* ... copia tu UI de Login aquí ... */}
+            {/* Solo asegúrate de que el botón llame a handleLogin */}
+             <StatusBar barStyle="light-content" backgroundColor="#1976D2" />
         
-        <View style={styles.headerSection}>
-            <View style={styles.logoCircle}>
-                <AntDesign name="user" size={40} color={primaryBlue} /> 
+            <View style={styles.headerSection}>
+                <View style={styles.logoCircle}>
+                    <AntDesign name="user" size={40} color="#1976D2" /> 
+                </View>
+                <Text style={styles.appName}>upqteca</Text>
+                <Text style={styles.subTitleApp}>Sistema de Reservas UPQ</Text>
             </View>
-            <Text style={styles.appName}>upteca</Text>
-            <Text style={styles.subTitleApp}>Sistema de Reservas UPQ</Text>
-        </View>
-        
-        <View style={styles.recuadro}>
-          <Text style={styles.title}>Iniciar Sesión</Text>
-          <Text style={styles.subtitle}>Ingresa con tu cuenta institucional</Text>
-          
-          <Text style={styles.inputLabel}>Matrícula</Text>
-          <TextInput 
-          style={styles.input}
-          placeholder='Matrícula'
-          keyboardType='numeric'
-          value={matricula}
-          onChangeText={setMatricula}
-          ></TextInput>
+            
+            <View style={styles.recuadro}>
+            <Text style={styles.title}>Iniciar Sesión</Text>
+            <Text style={styles.subtitle}>Base de datos Local (SQLite)</Text>
+            
+            <Text style={styles.inputLabel}>Matrícula</Text>
+            <TextInput 
+                style={styles.input}
+                placeholder='Matrícula'
+                keyboardType='numeric'
+                value={matricula}
+                onChangeText={setMatricula}
+            />
 
-          <Text style={styles.inputLabel}>Contraseña</Text>
-          <TextInput 
-          style={styles.input}
-          placeholder="Contraseña" 
-          secureTextEntry={true} 
-          value={contraseña}
-          onChangeText={setContraseña} >
-          </TextInput>
-          
-          <View style={styles.optionsContainer}>
-            <View style={styles.switchStyle}>
-                <Text style={styles.recordarmeText}>Recordarme </Text>
-                <Switch 
-                    value={recordarme} 
-                    onValueChange={setRecordarme} 
-                    trackColor={{ false: "#767577", true: primaryBlue }}
-                    thumbColor={recordarme ? 'white' : 'white'}
-                />
+            <Text style={styles.inputLabel}>Contraseña</Text>
+            <TextInput 
+                style={styles.input}
+                placeholder="Contraseña" 
+                secureTextEntry={true} 
+                value={password}
+                onChangeText={setPassword} 
+            />
+            
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+            </TouchableOpacity>
             </View>
-
-            <TouchableOpacity>
-              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.loginButton} onPress={MostrarAlerta}>
-            <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.supportContainer}>
-            <Text style={styles.supportText}> ¿Problemas para acceder? </Text>
-            <TouchableOpacity>
-              <Text style={styles.contactSupportText}>Contactar soporte</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-      </ScrollView>
+        </ScrollView>
     );
 }
 
+// ... Estilos originales ...
 const primaryBlue = '#1976D2';
 const secondaryBlue = '#2196F3';
 const lightGray = '#eee';
@@ -177,27 +152,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         fontSize: 16,
     },
-    optionsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-        paddingHorizontal: 0
-    },
-    switchStyle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    recordarmeText: {
-        color: '#666',
-        fontSize: 14,
-        marginRight: 5,
-    },
-    forgotPasswordText: {
-        color: secondaryBlue,
-        fontWeight: '600',
-        fontSize: 14,
-    },
     loginButton: {
         backgroundColor: primaryBlue,
         paddingVertical: 15,
@@ -211,19 +165,4 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    supportContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    supportText: {
-        color: '#666',
-        fontSize: 14,
-    },
-    contactSupportText: {
-        color: secondaryBlue,
-        fontWeight: '500',
-        fontSize: 14,
-    }
-})
+});

@@ -1,26 +1,58 @@
-import React, {useState} from 'react';
-import {Text,TouchableOpacity,StatusBar,StyleSheet,View,ScrollView,Switch,Alert} from 'react-native';
-import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useState, useCallback } from 'react';
+import { Text, TouchableOpacity, StatusBar, StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // <--- IMPORTANTE
+import { getUserById, getEspacios, getMisReservasActivas } from '../database';
 
 const primaryBlue = '#1976D2';
-const secondaryBlue = '#2196F3';
 const successGreen = '#22C55E';
 const lightSuccessBackground = '#DCFCE7';
 
-export default function DashboardScreen() {
+export default function HomeScreen({ navigation }) {
+    const insets = useSafeAreaInsets(); // <--- Medidas seguras
+    const [user, setUser] = useState(null);
+    const [activeRes, setActiveRes] = useState(null);
+    const [availableCount, setAvailableCount] = useState(0);
     const [notificationCount, setNotificationCount] = useState(2);
+
+    useFocusEffect(
+        useCallback(() => {
+            const loadData = async () => {
+                try {
+                    const id = await AsyncStorage.getItem('userId');
+                    if (id) {
+                        const userData = getUserById(parseInt(id));
+                        setUser(userData);
+
+                        const reservas = getMisReservasActivas(parseInt(id));
+                        setActiveRes(reservas.length > 0 ? reservas[0] : null);
+                    }
+
+                    const espacios = getEspacios();
+                    const libres = espacios.filter(e => e.estado === 'disponible').length;
+                    setAvailableCount(libres);
+
+                } catch (e) {
+                    console.error("Error cargando Home:", e);
+                }
+            };
+            loadData();
+        }, [])
+    );
     
     const handleCheckIn = () => {
-        Alert.alert('Check-in', 'Realizando Check-in para Cubículo Individual A1...');
+        Alert.alert('Check-in', `Realizando Check-in para ${activeRes?.espacio_nombre}...`);
     };
 
     return(
         <View style={styles.main}>
-        
             <StatusBar barStyle="light-content" backgroundColor={primaryBlue}/>
 
-            <View style={styles.topHeader}>
-                <Text style={styles.headerTitle}>UPTECA</Text>
+            {/* HEADER CON SAFE AREA */}
+            <View style={[styles.topHeader, { paddingTop: insets.top + 10 }]}>
+                <Text style={styles.headerTitle}>UPQTECA</Text>
                 <TouchableOpacity style={styles.notificationButton}>
                     <Ionicons name="notifications-outline" size={26} color="white" />
                     {notificationCount > 0 && (
@@ -31,101 +63,97 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
             </View>
 
-
             <ScrollView contentContainerStyle={styles.container}>
                 
+                {/* TARJETA DE BIENVENIDA */}
                 <View style={styles.welcomeCard}>
                     <View style={styles.userInfoRow}>
                         <AntDesign name="user" size={40} color={primaryBlue} style={styles.userIcon} />
                         <View>
-                            <Text style={styles.greetingText}>¡Hola, Jesus!</Text>
-                            <Text style={styles.matriculaText}>122041657</Text>
+                            <Text style={styles.greetingText}>
+                                ¡Hola, {user ? user.nombre.split(' ')[0] : 'Estudiante'}!
+                            </Text>
+                            <Text style={styles.matriculaText}>
+                                {user ? user.matricula : 'Cargando...'}
+                            </Text>
                         </View>
                     </View>
                     
                     <View style={styles.availabilityRow}>
                         <Ionicons name="information-circle-outline" size={16} color="#4A90E2" />
-                        <Text style={styles.availabilityText}>4 espacios disponibles en biblioteca</Text>
+                        <Text style={styles.availabilityText}>
+                            {availableCount} espacios disponibles en biblioteca
+                        </Text>
                     </View>
                 </View>
 
-                <View style={styles.activeReservationCard}>
-                    <View style={styles.reservationHeader}>
-                        <Text style={styles.reservationTitle}>Reserva Activa</Text>
-                        <Text style={styles.reservationConfirmed}>Confirmada</Text>
-                    </View>
+                {/* TARJETA DE RESERVA ACTIVA */}
+                {activeRes ? (
+                    <View style={styles.activeReservationCard}>
+                        <View style={styles.reservationHeader}>
+                            <Text style={styles.reservationTitle}>Reserva Activa</Text>
+                            <Text style={styles.reservationConfirmed}>Confirmada</Text>
+                        </View>
 
-                    <Text style={styles.cubicleName}>Cubículo Individual A1</Text>
+                        <Text style={styles.cubicleName}>{activeRes.espacio_nombre}</Text>
 
-                    <View style={styles.reservationDetailRow}>
-                        <AntDesign name="clockcircleo" size={14} color="#666" />
-                        <Text style={styles.detailText}>Hoy, 14:00 - 16:00</Text>
-                    </View>
-                    <View style={styles.reservationDetailRow}>
-                        <Ionicons name="location-outline" size={16} color="#666" />
-                        <Text style={styles.detailText}>Biblioteca - Planta Baja</Text>
-                    </View>
+                        <View style={styles.reservationDetailRow}>
+                            <AntDesign name="clock-circle" size={14} color="#666" />
+                            <Text style={styles.detailText}>{activeRes.fecha}, {activeRes.hora}</Text>
+                        </View>
+                        <View style={styles.reservationDetailRow}>
+                            <Ionicons name="location-outline" size={16} color="#666" />
+                            <Text style={styles.detailText}>{activeRes.ubicacion}</Text>
+                        </View>
 
-                    <View style={styles.reservationActionRow}>
-                        <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
-                            <AntDesign name="checkcircle" size={18} color="white" />
-                            <Text style={styles.checkInButtonText}>Check-in</Text>
+                        <View style={styles.reservationActionRow}>
+                            <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
+                                <AntDesign name="check-circle" size={18} color="white" />
+                                <Text style={styles.checkInButtonText}>Check-in</Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                                style={styles.detailsButton}
+                                onPress={() => navigation.navigate('DetallesReserva', { item: activeRes, tipo: 'reserva' })}
+                            >
+                                <Text style={styles.detailsButtonText}>Ver detalles</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.noReservaCard}>
+                        <Text style={styles.noReservaText}>No tienes reservas activas por el momento.</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('Espacios')}>
+                            <Text style={styles.linkText}>Reservar ahora</Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity style={styles.detailsButton}>
-                            <Text style={styles.detailsButtonText}>Ver detalles</Text>
-                        </TouchableOpacity>
                     </View>
-                </View>
+                )}
 
                 <Text style={styles.quickActionsTitle}>Acciones Rápidas</Text>
 
                 <View style={styles.quickActionsRow}>
-                    <TouchableOpacity style={styles.quickActionButton}>
-                        <AntDesign name="search1" size={30} color={primaryBlue} />
+                    <TouchableOpacity 
+                        style={styles.quickActionButton}
+                        onPress={() => navigation.navigate('Espacios')}
+                    >
+                        <AntDesign name="search" size={30} color={primaryBlue} />
                         <Text style={styles.quickActionText}>Buscar Espacios</Text>
-                        <Text style={styles.quickActionSubtitle}>Encuentra el lugar</Text>
+                        <Text style={styles.quickActionSubtitle}>Encuentra lugar</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.quickActionButton}>
+                    <TouchableOpacity 
+                        style={styles.quickActionButton}
+                        onPress={() => navigation.navigate('Reservas')}
+                    >
                         <AntDesign name="calendar" size={30} color={primaryBlue} />
                         <Text style={styles.quickActionText}>Mis Reservas</Text>
-                        <Text style={styles.quickActionSubtitle}>Gestiona tus</Text> 
+                        <Text style={styles.quickActionSubtitle}>Gestiona tus citas</Text> 
                     </TouchableOpacity>
                 </View>
 
             </ScrollView>
-
-            <View style={styles.bottomNav}>
-                <View style={[styles.navItem, styles.navItemActive]}>
-                    <Ionicons name="home" size={24} color={primaryBlue} />
-                    <Text style={[styles.navText, styles.navTextActive]}>Inicio</Text>
-                </View>
-                
-                <View style={styles.navItem}>
-                    <MaterialCommunityIcons name="calendar-check-outline" size={24} color="#666" />
-                    <Text style={styles.navText}>Reservas</Text>
-                </View>
-
-                <View style={styles.navItem}>
-                    <MaterialCommunityIcons name="office-building-marker-outline" size={24} color="#666" />
-                    <Text style={styles.navText}>Espacios</Text>
-                </View>
-                
-                <View style={styles.navItem}>
-                    <MaterialCommunityIcons name="history" size={24} color="#666" />
-                    <Text style={styles.navText}>Historial</Text>
-                </View>
-
-                <View style={styles.navItem}>
-                    <AntDesign name="user" size={24} color="#666" />
-                    <Text style={styles.navText}>Perfil</Text>
-                </View>
-            </View>
-
         </View>
     )
-
 }
 
 const styles = StyleSheet.create({
@@ -137,7 +165,7 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         paddingHorizontal: 15,
         paddingTop: 0,
-        paddingBottom: 100,
+        paddingBottom: 20,
     },
 
     topHeader: {
@@ -145,7 +173,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 15,
-        paddingVertical: 15,
+        paddingBottom: 15, // Solo padding abajo fijo, el de arriba es dinámico
         backgroundColor: primaryBlue,
     },
     headerTitle: {
@@ -228,6 +256,24 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         borderWidth: 1,
         borderColor: successGreen + '30',
+    },
+    noReservaCard: {
+        backgroundColor: 'white',
+        borderRadius: 15,
+        padding: 20,
+        marginBottom: 20,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#eee',
+        borderStyle: 'dashed'
+    },
+    noReservaText: {
+        color: '#666',
+        marginBottom: 5
+    },
+    linkText: {
+        color: primaryBlue,
+        fontWeight: 'bold'
     },
     reservationHeader: {
         flexDirection: 'row',
@@ -334,40 +380,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999',
         textAlign: 'center',
-    },
-
-    bottomNav: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        backgroundColor: 'white',
-        height: 80,
-        paddingTop: 10,
-        borderTopWidth: 1,
-        borderTopColor: '#eee',
-        elevation: 10,
-    },
-    navItem: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 5,
-        flex: 1,
-    },
-    navItemActive: {
-        borderTopWidth: 2,
-        borderTopColor: primaryBlue,
-        paddingTop: 8,
-    },
-    navText: {
-        fontSize: 12,
-        color: '#666',
-        marginTop: 4,
-    },
-    navTextActive: {
-        color: primaryBlue,
-        fontWeight: 'bold',
     },
 });
